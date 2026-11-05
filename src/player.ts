@@ -1,4 +1,4 @@
-import { Actor, Collider, CollisionContact, Engine, Side, vec, Keys } from "excalibur";
+import { Actor, Collider, CollisionContact, Engine, Side, vec, Keys, CollisionType, MoveToWithOptions} from "excalibur";
 import { Resources } from "./resources";
 
 
@@ -16,8 +16,34 @@ import { Resources } from "./resources";
 
 export class Player extends Actor {
   private speed: number = 200;
+  private lives: number = 3;
+  getLives(): number{
+    return this.lives;
+  }
+  private isDead: boolean = false;
+  private invulnerability: boolean = false;
+  private invulnerabilityTime: number = 2000;
+  private invulnerabilityTimer: number = 0;
+
+
+  takeDamage(): void {
+  if (this.lives > 0) {
+    this.lives--;
+  }
+
+  if (this.lives === 0) {
+    this.isDead = true;
+  }
+}
+
+isPlayerDead(): boolean {
+  return this.isDead;
+}
+
+
   constructor() {
     super({
+      collisionType: CollisionType.Active,
       // Giving your actor a name is optional, but helps in debugging using the dev tools or debug mode
       // https://github.com/excaliburjs/excalibur-extension/
       // Chrome: https://chromewebstore.google.com/detail/excalibur-dev-tools/dinddaeielhddflijbbcmpefamfffekc
@@ -62,6 +88,14 @@ export class Player extends Actor {
     else if ( engine.input.keyboard.isHeld(Keys.D)){
       this.vel=vec(this.speed,0);
     }
+    if (this.invulnerability === true) {
+    this.invulnerabilityTimer -= elapsedMs;
+
+    if (this.invulnerabilityTimer <= 0) {
+        this.invulnerability = false;
+        this.invulnerabilityTimer = 0;
+    }
+}
   }
 
   override onPostUpdate(engine: Engine, elapsedMs: number): void {
@@ -73,12 +107,17 @@ export class Player extends Actor {
   }
 
   override onPostCollisionResolve(self: Collider, other: Collider, side: Side, contact: CollisionContact): void {
+    if (this.invulnerability === false && this.isDead === false) {
+      this.takeDamage()
+      this.invulnerability = true;
+      this.invulnerabilityTimer = this.invulnerabilityTime;
+    }
     // Called every time a collision is resolved and overlap is solved
-  }
+}
 
   override onCollisionStart(self: Collider, other: Collider, side: Side, contact: CollisionContact): void {
     // Called when a pair of objects are in contact
-  }
+    }
 
   override onCollisionEnd(self: Collider, other: Collider, side: Side, lastContact: CollisionContact): void {
     // Called when a pair of objects separates
