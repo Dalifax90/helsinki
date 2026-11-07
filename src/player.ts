@@ -1,5 +1,6 @@
 import { Actor, Collider, CollisionContact, Engine, Side, vec, Keys, CollisionType, MoveToWithOptions} from "excalibur";
 import { Resources } from "./resources";
+import { Bullet } from "./bullet";
 
 
 // Actors are the main unit of composition you'll likely use, anything that you want to draw and move around the screen
@@ -16,6 +17,7 @@ import { Resources } from "./resources";
 
 export class Player extends Actor {
   private speed: number = 200;
+  private direction = vec(0,1)
   private lives: number = 3;
   getLives(): number{
     return this.lives;
@@ -39,6 +41,12 @@ export class Player extends Actor {
 isPlayerDead(): boolean {
   return this.isDead;
 }
+restartPlayer(): void {
+    this.lives = 3;
+    this.isDead = false;
+    this.invulnerability = false;
+    this.invulnerabilityTimer = 0;
+  }
 
 
   constructor() {
@@ -72,22 +80,15 @@ isPlayerDead(): boolean {
   override onPreUpdate(engine: Engine, elapsedMs: number): void {
     // Put any update logic here runs every frame before Actor builtins
     this.vel=vec(0,0);
-    if( engine.input.keyboard.isHeld(Keys.W)){
-      this.vel=vec(0,-this.speed);
-    }
+    if (this.isDead === true) {
+      if(engine.input.keyboard.wasPressed(Keys.R)){
+        this.restartPlayer();
+      }
+      else{
+        return;
+      }
+}
 
-
-    else if( engine.input.keyboard.isHeld(Keys.A)){
-      this.vel=vec(-this.speed,0);
-    }
-
-    else if( engine.input.keyboard.isHeld(Keys.S)){
-      this.vel=vec(0,this.speed);
-    }
-
-    else if ( engine.input.keyboard.isHeld(Keys.D)){
-      this.vel=vec(this.speed,0);
-    }
     if (this.invulnerability === true) {
     this.invulnerabilityTimer -= elapsedMs;
 
@@ -96,6 +97,31 @@ isPlayerDead(): boolean {
         this.invulnerabilityTimer = 0;
     }
 }
+
+if(engine.input.keyboard.isHeld(Keys.W)){
+  this.vel = vec(0,-this.speed);
+  this.direction = vec(0,-1)
+}
+else if(engine.input.keyboard.isHeld(Keys.A)){
+  this.vel = vec(-this.speed,0);
+  this.direction = vec(-1,0)
+}
+else if(engine.input.keyboard.isHeld(Keys.S)){
+  this.vel = vec(0,this.speed);
+  this.direction = vec(0,1)
+}
+else if(engine.input.keyboard.isHeld(Keys.D)){
+  this.vel = vec(this.speed,0);
+  this.direction = vec(1,0)
+}
+if(engine.input.keyboard.wasPressed(Keys.Space)){
+  const bullet = new Bullet(
+    this.direction,
+    this.pos.add(this.direction.scale(60))
+  );
+  this.scene.add(bullet);
+}
+
   }
 
   override onPostUpdate(engine: Engine, elapsedMs: number): void {
