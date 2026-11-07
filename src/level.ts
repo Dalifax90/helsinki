@@ -1,40 +1,40 @@
-import { DefaultLoader, Engine, ExcaliburGraphicsContext, Scene, SceneActivationContext } from "excalibur";
+import { Actor, CollisionType, Color, DefaultLoader, Engine, ExcaliburGraphicsContext, Scene, SceneActivationContext, vec } from "excalibur";
 import { Player } from "./player";
 
 export class MyLevel extends Scene {
     override onInitialize(engine: Engine): void {
-        // Scene.onInitialize is where we recommend you perform the composition for your game
         const player = new Player();
-        this.add(player); // Actors need to be added to a scene to be drawn
+        this.add(player);
+
+        // Bordas externas da sala (800x600)
+        this.criarParede(400, 10, 800, 20);  // Topo
+        this.criarParede(400, 590, 800, 20); // Base
+        this.criarParede(10, 300, 20, 600);  // Esquerda
+        this.criarParede(790, 300, 20, 600); // Direita
+
+        // Obstáculos internos do labirinto (deixando espaço para o Player em 150, 150)
+        this.criarParede(300, 220, 20, 250); // Pilar vertical esquerdo
+        this.criarParede(520, 380, 20, 250); // Pilar vertical direito
+        this.criarParede(410, 300, 150, 20); // Barreira horizontal central
     }
 
-    override onPreLoad(loader: DefaultLoader): void {
-        // Add any scene specific resources to load
+    private criarParede(x: number, y: number, largura: number, altura: number): void {
+        const parede = new Actor({
+            name: "Wall",
+            pos: vec(x, y),
+            width: largura,
+            height: altura,
+            color: Color.Blue,
+            collisionType: CollisionType.Fixed
+        });
+        this.add(parede);
     }
 
-    override onActivate(context: SceneActivationContext<unknown>): void {
-        // Called when Excalibur transitions to this scene
-        // Only 1 scene is active at a time
-    }
-
-    override onDeactivate(context: SceneActivationContext): void {
-        // Called when Excalibur transitions away from this scene
-        // Only 1 scene is active at a time
-    }
-
-    override onPreUpdate(engine: Engine, elapsedMs: number): void {
-        // Called before anything updates in the scene
-    }
-
-    override onPostUpdate(engine: Engine, elapsedMs: number): void {
-        // Called after everything updates in the scene
-    }
-
-    override onPreDraw(ctx: ExcaliburGraphicsContext, elapsedMs: number): void {
-        // Called before Excalibur draws to the screen
-    }
-
-    override onPostDraw(ctx: ExcaliburGraphicsContext, elapsedMs: number): void {
-        // Called after Excalibur draws to the screen
-    }
+    override onPreLoad(loader: DefaultLoader): void {}
+    override onActivate(context: SceneActivationContext<unknown>): void {}
+    override onDeactivate(context: SceneActivationContext): void {}
+    override onPreUpdate(engine: Engine, elapsedMs: number): void {}
+    override onPostUpdate(engine: Engine, elapsedMs: number): void {}
+    override onPreDraw(ctx: ExcaliburGraphicsContext, elapsedMs: number): void {}
+    override onPostDraw(ctx: ExcaliburGraphicsContext, elapsedMs: number): void {}
 }

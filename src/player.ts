@@ -46,6 +46,7 @@ restartPlayer(): void {
     this.isDead = false;
     this.invulnerability = false;
     this.invulnerabilityTimer = 0;
+    this.pos = vec(150, 150); 
   }
 
 
@@ -58,8 +59,8 @@ restartPlayer(): void {
       // Firefox: https://addons.mozilla.org/en-US/firefox/addon/excalibur-dev-tools/
       name: 'Player',
       pos: vec(150, 150),
-      width: 100,
-      height: 100,
+      width: 50,
+      height: 50,
       // anchor: vec(0, 0), // Actors default center colliders and graphics with anchor (0.5, 0.5)
       // collisionType: CollisionType.Active, // Collision Type Active means this participates in collisions read more https://excaliburjs.com/docs/collisiontypes
     });
@@ -67,7 +68,9 @@ restartPlayer(): void {
   }
 
   override onInitialize() {
-    this.graphics.add(Resources.Sword.toSprite());
+    const sprite  = Resources.Sword.toSprite();
+    sprite.destSize = { width: 50, height: 50 };
+    this.graphics.add(sprite);
     // Generally recommended to stick logic in the "On initialize"
     // This runs before the first update
     // Useful when
@@ -117,7 +120,7 @@ else if(engine.input.keyboard.isHeld(Keys.D)){
 if(engine.input.keyboard.wasPressed(Keys.Space)){
   const bullet = new Bullet(
     this.direction,
-    this.pos.add(this.direction.scale(60))
+    this.pos.add(this.direction.scale(35))
   );
   this.scene?.add(bullet);
 }
