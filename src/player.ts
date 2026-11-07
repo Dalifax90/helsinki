@@ -1,4 +1,4 @@
-import { Actor, Collider, CollisionContact, Engine, Side, vec, Keys, CollisionType, MoveToWithOptions} from "excalibur";
+import { Actor, Collider, CollisionContact, Engine, Side, vec, Keys, CollisionType} from "excalibur"; // MoveToWithOptions} from "excalibur";
 import { Resources } from "./resources";
 import { Bullet } from "./bullet";
 
@@ -119,7 +119,7 @@ if(engine.input.keyboard.wasPressed(Keys.Space)){
     this.direction,
     this.pos.add(this.direction.scale(60))
   );
-  this.scene.add(bullet);
+  this.scene?.add(bullet);
 }
 
   }
