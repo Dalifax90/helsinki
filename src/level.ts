@@ -1,4 +1,19 @@
-import { Actor, CollisionType, Color, DefaultLoader, Engine, ExcaliburGraphicsContext, Font, FontUnit, Label, Scene, SceneActivationContext, TextAlign, Vector, vec } from "excalibur";
+import {
+    Actor,
+    CollisionType,
+    Color,
+    DefaultLoader,
+    Engine,
+    ExcaliburGraphicsContext,
+    Font,
+    FontUnit,
+    Label,
+    Scene,
+    SceneActivationContext,
+    TextAlign,
+    Vector,
+    vec
+} from "excalibur";
 import { Player } from "./player";
 import { Bullet } from "./bullet";
 
@@ -7,6 +22,7 @@ type DirecaoPorta = "topo" | "base" | "esquerda" | "direita";
 export class MyLevel extends Scene {
     private player!: Player;
     private paredesInternas: Actor[] = [];
+    private paredesBorda: Actor[] = [];
     private vidasLabel!: Label;
     private gameOverLabel!: Label;
     private estavaMorto: boolean = false;
@@ -15,18 +31,25 @@ export class MyLevel extends Scene {
     private pontosLabel!: Label;
     private salaLabel!: Label;
 
-    
+    private readonly coresSetores: Color[] = [
+        Color.fromHex("#718096"), 
+        Color.fromHex("#3182CE"), 
+        Color.fromHex("#D69E2E"), 
+        Color.fromHex("#38B2AC"), 
+        Color.fromHex("#805AD5")  
+    ];
+
     private readonly pontosBaseDeSpawn: Vector[] = [
-        vec(400, 110), 
-        vec(400, 300), 
-        vec(400, 490), 
-        vec(120, 460), 
-        vec(680, 140), 
-        vec(680, 460)  
+        vec(400, 110),
+        vec(400, 300),
+        vec(400, 490),
+        vec(120, 460),
+        vec(680, 140),
+        vec(680, 460)
     ];
 
     override onInitialize(engine: Engine): void {
-        this.backgroundColor = Color.Black;
+        this.backgroundColor = Color.fromHex("#111317");
 
         this.player = new Player();
         this.add(this.player);
@@ -34,6 +57,10 @@ export class MyLevel extends Scene {
         this.criarBordasComPortas();
         this.gerarLabirintoInterno();
         this.criarHUD();
+    }
+
+    private obterCorDoSetorAtual(): Color {
+        return this.coresSetores[(this.salaAtual - 1) % this.coresSetores.length];
     }
 
     private criarBordasComPortas(): void {
@@ -57,13 +84,19 @@ export class MyLevel extends Scene {
     }
 
     private gerarLabirintoInterno(portaEntrada?: DirecaoPorta): void {
+        const corDoSetor = this.obterCorDoSetorAtual();
+
+        
+        for (const borda of this.paredesBorda) {
+            borda.color = corDoSetor;
+        }
+
         
         for (const parede of this.paredesInternas) {
             parede.kill();
         }
         this.paredesInternas = [];
 
-        
         const pilares = [
             { x: 280, y: 200 },
             { x: 520, y: 200 },
@@ -85,7 +118,6 @@ export class MyLevel extends Scene {
             }
         }
 
-        
         if (portaEntrada) {
             this.fecharPortaDeEntrada(portaEntrada);
         }
@@ -105,13 +137,11 @@ export class MyLevel extends Scene {
         }
     }
 
-    
     public obterPontosDeSpawn(quantidade: number = 3): Vector[] {
         const pontosSeguros = this.pontosBaseDeSpawn.filter(
             ponto => ponto.distance(this.player.pos) > 200
         );
 
-        
         const embaralhados = [...pontosSeguros].sort(() => Math.random() - 0.5);
         return embaralhados.slice(0, quantidade);
     }
@@ -122,24 +152,28 @@ export class MyLevel extends Scene {
         largura: number,
         altura: number,
         interna: boolean,
-        cor: Color = Color.Blue
+        cor?: Color
     ): void {
+        const corEscolhida = cor ?? this.obterCorDoSetorAtual();
+
         const parede = new Actor({
             name: "Wall",
             pos: vec(x, y),
             width: largura,
             height: altura,
-            color: cor,
+            color: corEscolhida,
             collisionType: CollisionType.Fixed
         });
         this.add(parede);
 
         if (interna) {
             this.paredesInternas.push(parede);
+        } else {
+            this.paredesBorda.push(parede);
         }
     }
 
-public adicionarPontos(valor: number): void {
+    public adicionarPontos(valor: number): void {
         this.pontuacao += valor;
     }
 
@@ -151,7 +185,6 @@ public adicionarPontos(valor: number): void {
             color: Color.White
         });
 
-        // Canto superior esquerdo: Vidas
         this.vidasLabel = new Label({
             text: `Vidas: ${this.player.getLives()}`,
             pos: vec(35, 40),
@@ -160,9 +193,8 @@ public adicionarPontos(valor: number): void {
         });
         this.add(this.vidasLabel);
 
-        // Topo centro-esquerda (antes da porta): Sala atual
         this.salaLabel = new Label({
-            text: `Sala: ${this.salaAtual}`,
+            text: `Setor: ${this.salaAtual}`,
             pos: vec(190, 40),
             z: 100,
             font: new Font({
@@ -174,7 +206,6 @@ public adicionarPontos(valor: number): void {
         });
         this.add(this.salaLabel);
 
-        // Canto superior direito: Pontuação
         this.pontosLabel = new Label({
             text: "Score: 0000",
             pos: vec(765, 40),
@@ -189,7 +220,6 @@ public adicionarPontos(valor: number): void {
         });
         this.add(this.pontosLabel);
 
-        // Centro da tela: Mensagem de Game Over
         this.gameOverLabel = new Label({
             text: "GAME OVER\nPressione R para reiniciar",
             pos: vec(400, 280),
@@ -213,7 +243,6 @@ public adicionarPontos(valor: number): void {
     override onPostUpdate(engine: Engine, elapsedMs: number): void {
         const mortoAgora = this.player.isPlayerDead();
 
-        // Detecta quando o jogador apertou R após o Game Over
         if (this.estavaMorto && !mortoAgora) {
             this.pontuacao = 0;
             this.salaAtual = 1;
@@ -222,18 +251,16 @@ public adicionarPontos(valor: number): void {
         }
         this.estavaMorto = mortoAgora;
 
-        // Atualiza os textos da HUD
         const scoreFormatado = String(this.pontuacao).padStart(4, "0");
         this.vidasLabel.text = `Vidas: ${this.player.getLives()}`;
-        this.salaLabel.text = `Sala: ${this.salaAtual}`;
+        this.salaLabel.text = `Setor: ${this.salaAtual}`;
         this.pontosLabel.text = `Score: ${scoreFormatado}`;
 
         if (mortoAgora) {
-            this.gameOverLabel.text = `GAME OVER\nScore Final: ${scoreFormatado} (Sala ${this.salaAtual})\nPressione R para reiniciar`;
+            this.gameOverLabel.text = `GAME OVER\nScore Final: ${scoreFormatado} (Setor ${this.salaAtual})\nPressione R para reiniciar`;
         }
         this.gameOverLabel.graphics.isVisible = mortoAgora;
 
-        // Verifica transição pelas 4 portas
         let portaEntrada: DirecaoPorta | undefined;
 
         if (this.player.pos.x > 800) {
@@ -252,7 +279,7 @@ public adicionarPontos(valor: number): void {
 
         if (portaEntrada) {
             this.salaAtual++;
-            this.adicionarPontos(50); // Bônus por avançar de sala
+            this.adicionarPontos(50);
             this.limparTiros();
             this.gerarLabirintoInterno(portaEntrada);
         }
