@@ -1,7 +1,7 @@
-import { Actor, CollisionType, vec, Circle, Color } from "excalibur";
+import { Actor, CollisionType, Circle, Color } from "excalibur";
 
 export class Bullet extends Actor {
- private speed: number = 400;
+  private speed: number = 400;
 
   constructor(direction: any, position: any) {
     super({
@@ -19,5 +19,15 @@ export class Bullet extends Actor {
     );
 
     this.vel = direction.scale(this.speed);
+  }
+
+  override onCollisionStart(): void {
+    this.kill();
+  }
+
+  override onPreUpdate(): void {
+    if (this.isOffScreen) {
+      this.kill();
+    }
   }
 }
