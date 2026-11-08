@@ -1,5 +1,9 @@
-import { Actor, Collider, CollisionContact, Engine, Side, vec, Keys, CollisionType, MoveToWithOptions} from "excalibur";
+import { Actor, Collider, CollisionContact, Engine, Side, vec, Keys, CollisionType } from "excalibur";
 import { Resources } from "./resources";
+import { ImageSource } from "excalibur";
+import { Bullet } from "./bullet";
+
+
 
 
 // Actors are the main unit of composition you'll likely use, anything that you want to draw and move around the screen
@@ -24,6 +28,7 @@ export class Player extends Actor {
   private invulnerability: boolean = false;
   private invulnerabilityTime: number = 2000;
   private invulnerabilityTimer: number = 0;
+  private currentDirection: string = "front";
 
 
   takeDamage(): void {
@@ -39,6 +44,13 @@ export class Player extends Actor {
 isPlayerDead(): boolean {
   return this.isDead;
 }
+
+restartPlayer(): void {
+    this.lives = 3;
+    this.isDead = false;
+    this.invulnerability = false;
+    this.invulnerabilityTimer = 0;
+  }
 
 
   constructor() {
@@ -58,8 +70,33 @@ isPlayerDead(): boolean {
     
   }
 
+   changeDirection(direction: string): void{
+      if (this.currentDirection === direction){
+        return;
+      }
+
+    this.currentDirection = direction;
+    switch(direction){
+      case "front":
+        this.graphics.use(Resources.PlayerFront.toSprite());
+          break;
+
+      case "back":
+        this.graphics.use(Resources.PlayerBack.toSprite());
+          break;
+
+      case "right":
+        this.graphics.use(Resources.PlayerRight.toSprite());
+          break;
+
+          case "left":
+        this.graphics.use(Resources.PlayerLeft.toSprite());
+          break;
+    }
+  }
+
   override onInitialize() {
-    this.graphics.add(Resources.Sword.toSprite());
+    this.graphics.use(Resources.PlayerFront.toSprite());
     // Generally recommended to stick logic in the "On initialize"
     // This runs before the first update
     // Useful when
@@ -72,22 +109,64 @@ isPlayerDead(): boolean {
   override onPreUpdate(engine: Engine, elapsedMs: number): void {
     // Put any update logic here runs every frame before Actor builtins
     this.vel=vec(0,0);
-    if( engine.input.keyboard.isHeld(Keys.W)){
-      this.vel=vec(0,-this.speed);
+
+    if (this.isDead === true) {
+      if (engine.input.keyboard.wasPressed(Keys.R)) {
+        this.restartPlayer();
+      }
+      else {
+        return;
+      }
     }
 
+    if( engine.input.keyboard.isHeld(Keys.W)){
+      this.vel=vec(0,-this.speed);
+      this.changeDirection("front");
+    }
 
     else if( engine.input.keyboard.isHeld(Keys.A)){
       this.vel=vec(-this.speed,0);
+      this.changeDirection("left");
     }
 
     else if( engine.input.keyboard.isHeld(Keys.S)){
       this.vel=vec(0,this.speed);
+      this.changeDirection("back");
     }
 
     else if ( engine.input.keyboard.isHeld(Keys.D)){
       this.vel=vec(this.speed,0);
+      this.changeDirection("right");
     }
+
+    if(engine.input.keyboard.wasPressed(Keys.Space)){
+      let direction = vec(0,1);
+
+      switch(this.currentDirection){
+        case "front":
+          direction = vec(0,-1);
+          break;
+
+        case "back":
+          direction = vec(0,1);
+          break;
+
+        case "right":
+          direction = vec(1,0);
+          break;
+
+        case "left":
+          direction = vec(-1,0);
+          break;
+      }
+
+      const bullet = new Bullet(
+        direction,
+        this.pos.add(direction.scale(60))
+      );
+      this.scene.add(bullet);
+    }
+
     if (this.invulnerability === true) {
     this.invulnerabilityTimer -= elapsedMs;
 
