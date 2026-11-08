@@ -10,6 +10,10 @@ export class MyLevel extends Scene {
     private vidasLabel!: Label;
     private gameOverLabel!: Label;
     private estavaMorto: boolean = false;
+    private pontuacao: number = 0;
+    private salaAtual: number = 1;
+    private pontosLabel!: Label;
+    private salaLabel!: Label;
 
     
     private readonly pontosBaseDeSpawn: Vector[] = [
@@ -135,27 +139,64 @@ export class MyLevel extends Scene {
         }
     }
 
+public adicionarPontos(valor: number): void {
+        this.pontuacao += valor;
+    }
+
     private criarHUD(): void {
+        const fontePadrao = new Font({
+            family: "monospace",
+            size: 20,
+            unit: FontUnit.Px,
+            color: Color.White
+        });
+
+        // Canto superior esquerdo: Vidas
         this.vidasLabel = new Label({
             text: `Vidas: ${this.player.getLives()}`,
-            pos: vec(35, 35),
+            pos: vec(35, 40),
+            z: 100,
+            font: fontePadrao
+        });
+        this.add(this.vidasLabel);
+
+        // Topo centro-esquerda (antes da porta): Sala atual
+        this.salaLabel = new Label({
+            text: `Sala: ${this.salaAtual}`,
+            pos: vec(190, 40),
             z: 100,
             font: new Font({
                 family: "monospace",
                 size: 20,
                 unit: FontUnit.Px,
-                color: Color.White
+                color: Color.Cyan
             })
         });
-        this.add(this.vidasLabel);
+        this.add(this.salaLabel);
 
-        this.gameOverLabel = new Label({
-            text: "GAME OVER - Pressione R para reiniciar",
-            pos: vec(400, 300),
+        // Canto superior direito: Pontuação
+        this.pontosLabel = new Label({
+            text: "Score: 0000",
+            pos: vec(765, 40),
             z: 100,
             font: new Font({
                 family: "monospace",
-                size: 28,
+                size: 20,
+                unit: FontUnit.Px,
+                color: Color.Yellow,
+                textAlign: TextAlign.Right
+            })
+        });
+        this.add(this.pontosLabel);
+
+        // Centro da tela: Mensagem de Game Over
+        this.gameOverLabel = new Label({
+            text: "GAME OVER\nPressione R para reiniciar",
+            pos: vec(400, 280),
+            z: 100,
+            font: new Font({
+                family: "monospace",
+                size: 26,
                 unit: FontUnit.Px,
                 color: Color.Red,
                 textAlign: TextAlign.Center
@@ -172,35 +213,46 @@ export class MyLevel extends Scene {
     override onPostUpdate(engine: Engine, elapsedMs: number): void {
         const mortoAgora = this.player.isPlayerDead();
 
-        
+        // Detecta quando o jogador apertou R após o Game Over
         if (this.estavaMorto && !mortoAgora) {
+            this.pontuacao = 0;
+            this.salaAtual = 1;
             this.limparTiros();
-            this.gerarLabirintoInterno(); 
+            this.gerarLabirintoInterno();
         }
         this.estavaMorto = mortoAgora;
 
-        
+        // Atualiza os textos da HUD
+        const scoreFormatado = String(this.pontuacao).padStart(4, "0");
         this.vidasLabel.text = `Vidas: ${this.player.getLives()}`;
+        this.salaLabel.text = `Sala: ${this.salaAtual}`;
+        this.pontosLabel.text = `Score: ${scoreFormatado}`;
+
+        if (mortoAgora) {
+            this.gameOverLabel.text = `GAME OVER\nScore Final: ${scoreFormatado} (Sala ${this.salaAtual})\nPressione R para reiniciar`;
+        }
         this.gameOverLabel.graphics.isVisible = mortoAgora;
 
-        
+        // Verifica transição pelas 4 portas
         let portaEntrada: DirecaoPorta | undefined;
 
         if (this.player.pos.x > 800) {
-            this.player.pos.x = 55; 
+            this.player.pos.x = 55;
             portaEntrada = "esquerda";
         } else if (this.player.pos.x < 0) {
-            this.player.pos.x = 745; 
+            this.player.pos.x = 745;
             portaEntrada = "direita";
         } else if (this.player.pos.y > 600) {
-            this.player.pos.y = 55; 
+            this.player.pos.y = 55;
             portaEntrada = "topo";
         } else if (this.player.pos.y < 0) {
-            this.player.pos.y = 545; 
+            this.player.pos.y = 545;
             portaEntrada = "base";
         }
 
         if (portaEntrada) {
+            this.salaAtual++;
+            this.adicionarPontos(50); // Bônus por avançar de sala
             this.limparTiros();
             this.gerarLabirintoInterno(portaEntrada);
         }
