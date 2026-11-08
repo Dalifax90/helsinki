@@ -2,11 +2,11 @@ import { ImageSource, Loader } from "excalibur";
 export const Resources = {
     Sword: new ImageSource('/images/sword.png'),
 
-    PlayerFront: new ImageSource('/images/sprite_1.png'),
-    PlayerBack: new ImageSource('/images/sprite_2.png'),
-    PlayerRight: new ImageSource('/images/sprite_3.png'),
-    PlayerLeft: new ImageSource('/images/sprite_4.png'),
-};
+    PlayerFront: new ImageSource('./images/sprite_1.png'),
+    PlayerBack: new ImageSource('./images/sprite_2.png'),
+    PlayerRight: new ImageSource('./images/sprite_3.png'),
+    PlayerLeft: new ImageSource('./images/sprite_4.png'),
+} as const;
 
 
 // We build a loader and add all of our resources to the boot loader

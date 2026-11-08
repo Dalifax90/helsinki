@@ -1,4 +1,4 @@
-import { Actor, Collider, CollisionContact, Engine, Side, vec, Keys, CollisionType } from "excalibur";
+import { Actor, Collider, CollisionContact, Engine, Side, vec, Keys, CollisionType, ImageSource } from "excalibur";
 import { Resources } from "./resources";
 import { Bullet } from "./bullet";
 
@@ -16,8 +16,8 @@ export class Player extends Actor {
       collisionType: CollisionType.Active,
       name: "Player",
       pos: vec(150, 150),
-      width: 50,
-      height: 50
+      width: 40, // Hitbox levemente menor que o visual para facilitar passar nas portas
+      height: 45
     });
   }
 
@@ -44,7 +44,79 @@ export class Player extends Actor {
     this.isDead = false;
     this.invulnerability = false;
     this.invulnerabilityTimer = 0;
+    this.rotation = 0;
+    this.graphics.opacity = 1;
     this.pos = vec(150, 150);
+  }
+
+  private aplicarSprite(recurso: ImageSource): void {
+    const imgOriginal = recurso.image;
+    const w = imgOriginal.width;
+    const h = imgOriginal.height;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+
+    if (ctx && w > 0 && h > 0) {
+      ctx.drawImage(imgOriginal, 0, 0);
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const d = imgData.data;
+
+      
+      const ehFundoClaro = (idx: number) => {
+        const r = d[idx], g = d[idx + 1], b = d[idx + 2], a = d[idx + 3];
+        if (a === 0) return true;
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+       
+        return max > 195 && (max - min) < 35;
+      };
+
+      
+      const visitado = new Uint8Array(w * h);
+      const fila: number[] = [];
+
+      for (let x = 0; x < w; x++) {
+        fila.push(x, (h - 1) * w + x);
+      }
+      for (let y = 0; y < h; y++) {
+        fila.push(y * w, y * w + (w - 1));
+      }
+
+      while (fila.length > 0) {
+        const pos = fila.pop()!;
+        if (visitado[pos]) continue;
+        visitado[pos] = 1;
+
+        const idx = pos * 4;
+        if (ehFundoClaro(idx)) {
+          d[idx + 3] = 0; 
+          const x = pos % w;
+          const y = Math.floor(pos / w);
+          if (x > 0) fila.push(pos - 1);
+          if (x < w - 1) fila.push(pos + 1);
+          if (y > 0) fila.push(pos - w);
+          if (y < h - 1) fila.push(pos + w);
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    const fonteLimpa = new ImageSource(canvas.toDataURL());
+    fonteLimpa.load().then(() => {
+      const sprite = fonteLimpa.toSprite();
+      const alturaAlvo = 55;
+      const proporcao = h > 0 ? w / h : 1;
+
+      sprite.destSize = {
+        width: Math.round(alturaAlvo * proporcao),
+        height: alturaAlvo
+      };
+      this.graphics.use(sprite);
+    });
   }
 
   changeDirection(direction: string): void {
@@ -55,42 +127,48 @@ export class Player extends Actor {
     this.currentDirection = direction;
     switch (direction) {
       case "front":
-        this.graphics.use(Resources.PlayerFront.toSprite());
+        this.aplicarSprite(Resources.PlayerFront);
         break;
       case "back":
-        this.graphics.use(Resources.PlayerBack.toSprite());
+        this.aplicarSprite(Resources.PlayerBack);
         break;
       case "right":
-        this.graphics.use(Resources.PlayerRight.toSprite());
+        this.aplicarSprite(Resources.PlayerRight);
         break;
       case "left":
-        this.graphics.use(Resources.PlayerLeft.toSprite());
+        this.aplicarSprite(Resources.PlayerLeft);
         break;
     }
   }
 
   override onInitialize(): void {
-    this.graphics.use(Resources.PlayerFront.toSprite());
+    this.aplicarSprite(Resources.PlayerFront);
   }
 
   override onPreUpdate(engine: Engine, elapsedMs: number): void {
     this.vel = vec(0, 0);
 
     if (this.isDead === true) {
+      this.rotation = 0;
+      this.graphics.opacity = 0.4; // Fica translúcido no Game Over
       if (engine.input.keyboard.wasPressed(Keys.R)) {
         this.restartPlayer();
-      } else {
-        return;
       }
+      return;
     }
 
+    // Controle de invulnerabilidade + efeito de piscar ao tomar dano
     if (this.invulnerability === true) {
       this.invulnerabilityTimer -= elapsedMs;
+      this.graphics.opacity = Math.sin(engine.clock.now() / 40) > 0 ? 0.3 : 1;
 
       if (this.invulnerabilityTimer <= 0) {
         this.invulnerability = false;
         this.invulnerabilityTimer = 0;
+        this.graphics.opacity = 1;
       }
+    } else {
+      this.graphics.opacity = 1;
     }
 
     if (engine.input.keyboard.isHeld(Keys.W)) {
@@ -105,6 +183,16 @@ export class Player extends Actor {
     } else if (engine.input.keyboard.isHeld(Keys.D)) {
       this.vel = vec(this.speed, 0);
       this.changeDirection("right");
+    }
+
+    // Efeito procedural de passos (oscilação suave de caminhada + leve pulinho na escala)
+    if (this.vel.size > 0) {
+      const ciclo = engine.clock.now() / 55;
+      this.rotation = Math.sin(ciclo) * 0.12;
+      this.scale = vec(1, 1 + Math.abs(Math.cos(ciclo)) * 0.06);
+    } else {
+      this.rotation = 0;
+      this.scale = vec(1, 1);
     }
 
     if (engine.input.keyboard.wasPressed(Keys.Space)) {
