@@ -224,18 +224,23 @@ export class Player extends Actor {
       this.graphics.opacity = 1;
     }
 
-    if (engine.input.keyboard.isHeld(Keys.W)) {
-      this.vel = vec(0, -this.speed);
-      this.changeDirection("up");
-    } else if (engine.input.keyboard.isHeld(Keys.A)) {
-      this.vel = vec(-this.speed, 0);
-      this.changeDirection("left");
-    } else if (engine.input.keyboard.isHeld(Keys.S)) {
-      this.vel = vec(0, this.speed);
-      this.changeDirection("down");
-    } else if (engine.input.keyboard.isHeld(Keys.D)) {
-      this.vel = vec(this.speed, 0);
-      this.changeDirection("right");
+    let horizontal = 0;
+    let vertical = 0;
+
+    if (engine.input.keyboard.isHeld(Keys.A)) horizontal -= 1;
+    if (engine.input.keyboard.isHeld(Keys.D)) horizontal += 1;
+    if (engine.input.keyboard.isHeld(Keys.W)) vertical -= 1;
+    if (engine.input.keyboard.isHeld(Keys.S)) vertical += 1;
+
+    if (horizontal !== 0 || vertical !== 0) {
+      this.vel = vec(horizontal, vertical).normalize().scale(this.speed);
+
+      // Prioriza a horizontal para o sprite não ficar alternando na diagonal
+      if (horizontal !== 0) {
+        this.changeDirection(horizontal > 0 ? "right" : "left");
+      } else {
+        this.changeDirection(vertical > 0 ? "down" : "up");
+      }
     }
 
     // Efeito procedural de passos (oscilação suave de caminhada + leve pulinho na escala)
