@@ -167,8 +167,19 @@ export class MyLevel extends Scene {
             ponto => ponto.distance(this.player.pos) > 200
         );
 
-        const embaralhados = [...pontosSeguros].sort(() => Math.random() - 0.5);
-        return embaralhados.slice(0, quantidade);
+        return this.embaralhar(pontosSeguros).slice(0, quantidade);
+    }
+
+    private embaralhar<T>(itens: T[]): T[] {
+        const copia = [...itens];
+
+        // Fisher-Yates: sort(() => Math.random() - 0.5) gera distribuicao enviesada
+        for (let i = copia.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [copia[i], copia[j]] = [copia[j], copia[i]];
+        }
+
+        return copia;
     }
 
     private criarParede(
