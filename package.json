@@ -1,7 +1,7 @@
 {
-  "name": "star-wars",
-  "version": "0.0.0",
-  "description": "",
+  "name": "star-berzerk",
+  "version": "1.0.0",
+  "description": "Jogo arcade inspirado em Berzerk com tema Star Wars, feito com Excalibur.js e Vite.",
   "main": "src/main.ts",
   "scripts": {
     "dev": "vite",
