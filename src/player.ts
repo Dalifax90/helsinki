@@ -278,11 +278,18 @@ export class Player extends Actor {
   override onPreCollisionResolve(self: Collider, other: Collider, side: Side, contact: CollisionContact): void {}
 
   override onPostCollisionResolve(self: Collider, other: Collider, side: Side, contact: CollisionContact): void {
-    if (this.invulnerability === false && this.isDead === false) {
-      this.takeDamage();
-      this.invulnerability = true;
-      this.invulnerabilityTimer = this.invulnerabilityTime;
+    if (this.invulnerability === true || this.isDead === true) {
+      return;
     }
+
+    // O blaster do jogador não machuca o próprio Luke; paredes e inimigos sim
+    if (other.owner instanceof Bullet && other.owner.owner === "player") {
+      return;
+    }
+
+    this.takeDamage();
+    this.invulnerability = true;
+    this.invulnerabilityTimer = this.invulnerabilityTime;
   }
 
   override onCollisionStart(self: Collider, other: Collider, side: Side, contact: CollisionContact): void {}
