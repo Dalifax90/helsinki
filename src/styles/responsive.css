@@ -1,0 +1,76 @@
+@media(max-width:1000px) {
+  .shell { padding:0 30px; }
+  .masthead { gap:24px; }
+  nav { gap:22px; }
+  .introduction { gap:32px; }
+  .powerbar { gap:16px; flex-wrap:wrap; }
+  .loot-notice { margin:0; max-width:none; flex:1 1 200px; }
+  .instructions { gap:45px; }
+}
+@media(max-width:760px) {
+  :root { font-size:14px; }
+  .shell { padding:0 18px; }
+  .masthead { min-height:76px; gap:16px; flex-wrap:wrap; padding:18px 0 12px; }
+  .wordmark { font-size:11px; gap:9px; }
+  .brand-symbol { width:23px; height:23px; }
+  .quiet-button { margin-left:auto; min-width:0; padding-left:13px; font-size:10px; }
+  nav { order:3; flex-basis:100%; margin:5px 0 0; gap:26px; }
+  nav a { font-size:11px; }
+  .introduction { display:block; padding:42px 0 34px; }
+  .eyebrow { font-size:8px; margin-bottom:20px; }
+  h1 { font-size:84px; }
+  .intro-notes { margin-top:30px; max-width:none; }
+  .intro-notes>p { font-size:14px; margin-bottom:18px; }
+  .intro-notes>p br { display:none; }
+  .intro-notes dl>div { font-size:10px; padding:8px 0; }
+  .section-label { font-size:8px; padding-bottom:10px; }
+  .section-label>span:last-child { display:none; }
+  .hud { min-height:54px; gap:8px; padding:0 10px; }
+  .hud-sector { gap:5px; }
+  .hud-caption { font-size:7px; }
+  .hud strong { font-size:16px; }
+  .sector-name { display:none; }
+  .score { gap:6px; }
+  #hearts { gap:1px; }
+  .heart { width:16px; height:16px; background-size:80px 16px; background-position:-64px 0; }
+  .pause-button { width:24px; height:26px; padding:2px; }
+  .stage { aspect-ratio:auto; min-height:350px; }
+  canvas { position:absolute; top:50%; transform:translateY(-50%); height:auto; }
+  .overlay { padding:19px; background:#15151235; }
+  .menu-panel { padding:23px; max-width:100%; box-shadow:4px 4px 0 var(--ink); }
+  .menu-panel h2 { font-size:44px; margin-bottom:16px; }
+  .menu-panel .eyebrow { font-size:8px; margin-bottom:12px; }
+  .menu-panel>p:not(.eyebrow) { font-size:12px; line-height:1.6; margin-bottom:18px; }
+  .primary-button { font-size:11px; padding:13px 14px; }
+  .challenge-button { padding-top:12px; font-size:10px; }
+  .menu-hint { font-size:8px; margin-top:13px; }
+  .statusbar { padding:9px 11px; min-height:42px; font-size:9px; }
+  .status-tag { display:none; }
+  .powerbar { padding:12px 11px; gap:14px; }
+  .nova-button { min-width:155px; }
+  .inventory { margin-left:auto; gap:7px; }
+  .item-slot { width:36px; height:36px; }
+  .loot-notice { flex-basis:100%; font-size:9px; }
+  .boss-panel { left:7%; width:86%; top:12px; padding:9px 10px; }
+  .boss-panel strong { font-size:10px; }
+  .boss-panel strong span { display:none; }
+  #boss-phase { font-size:7px; }
+  .minimap { transform:scale(.8); transform-origin:bottom right; bottom:8px; right:8px; }
+  .instructions { display:block; padding:56px 0; }
+  .instructions-heading h2 { font-size:45px; margin-bottom:18px; }
+  .instructions-heading>p:last-child { font-size:11px; }
+  .control-table { margin-top:30px; }
+  .control-table>div { font-size:10px; grid-template-columns:1fr 1.5fr; gap:14px; padding:13px 0; }
+  kbd { font-size:8px; min-width:17px; }
+  footer { grid-template-columns:1fr; gap:30px; padding:28px 0 38px; }
+  .back-top { justify-self:start; }
+}
+@media(max-width:370px) {
+  h1 { font-size:74px; }
+  .inventory { gap:5px; }
+  .item-slot { width:34px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  html { scroll-behavior:auto; }
+  *,*::before,*::after { transition:none!important; animation:none!important; }
+}

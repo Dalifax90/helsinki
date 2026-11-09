@@ -1,340 +1,59 @@
-// @ts-nocheck
-import {
-    Actor,
-    CollisionType,
-    Color,
-    Engine,
-    Font,
-    FontUnit,
-    vec,
-    ImageSource,
-    Label,
-    Scene,
-    Sprite,
-    TextAlign
-} from "excalibur";
-import { Player } from "./player";
-import { Bullet } from "./bullet";
-import { Enemy } from "./enemy";
+import { type Point, type Rect, TILE } from './types';
 
-type DirecaoPorta = "topo" | "base" | "esquerda" | "direita";
+export const roomWalls = (sector: number): Rect[] => {
+  const offset = sector % 2 === 0 ? 32 : 0;
+  return [
+    { x: 64, y: 32, width: 384, height: 32 }, { x: 512, y: 32, width: 384, height: 32 },
+    { x: 32, y: 32, width: 32, height: 512 }, { x: 896, y: 32, width: 32, height: 512 },
+    { x: 64, y: 512, width: 832, height: 32 },
+    { x: 224, y: 160 + offset, width: 128, height: 64 },
+    { x: 608, y: 160 + offset, width: 128, height: 64 },
+    { x: 224, y: 352 - offset, width: 96, height: 64 },
+    { x: 640, y: 352 - offset, width: 96, height: 64 }
+  ];
+};
 
-export class MyLevel extends Scene {
-    private player!: Player;
-    private paredesInternas: Actor[] = [];
-    private paredesBorda: Actor[] = [];
-    private inimigos: Enemy[] = [];
-    private vidasLabel!: Label;
-    private gameOverLabel!: Label;
-    private estavaMorto: boolean = false;
-    private pontos: number = 0;
-    private salaAtual: number = 1;
-    private pontosLabel!: Label;
-    private salaLabel!: Label;
+export function touchesWall(point: Point, radius: number, walls: Rect[]): boolean {
+  return walls.some(wall => point.x + radius > wall.x && point.x - radius < wall.x + wall.width
+    && point.y + radius > wall.y && point.y - radius < wall.y + wall.height);
+}
 
-    private readonly coresSetores: Color[] = [
-        Color.fromHex("#718096"),
-        Color.fromHex("#3182CE"),
-        Color.fromHex("#D69E2E"),
-        Color.fromHex("#38B2AC"),
-        Color.fromHex("#805AD5")
-    ];
+export function moveCharacter(point: Point, dx: number, dy: number, walls: Rect[], radius = 12): boolean {
+  let blocked = false;
+  if (!touchesWall({ x: point.x + dx, y: point.y }, radius, walls)) point.x += dx;
+  else blocked = true;
+  if (!touchesWall({ x: point.x, y: point.y + dy }, radius, walls)) point.y += dy;
+  else blocked = true;
+  return blocked;
+}
 
-    private readonly pontosBaseDeSpawn: vec[] = [
-        vec(400, 110),
-        vec(400, 300),
-        vec(400, 490),
-        vec(120, 460),
-        vec(680, 140),
-        vec(680, 460)
-    ];
-
-    override onInitialize(engine: Engine): void {
-        this.backgroundColor = Color.fromHex("#111317");
-
-        this.player = new Player();
-        this.add(this.player);
-
-        this.criarBordasComPortas();
-        this.prepararSala();
-        this.criarHUD();
+// A shared distance field lets samurais navigate around walls rather than get stuck.
+export function distanceField(target: Point, walls: Rect[]): Map<string, number> {
+  const key = (x: number, y: number) => `${x},${y}`;
+  const origin = { x: Math.floor(target.x / TILE), y: Math.floor(target.y / TILE) };
+  const distances = new Map([[key(origin.x, origin.y), 0]]);
+  const queue = [origin];
+  for (let index = 0; index < queue.length; index++) {
+    const cell = queue[index];
+    const distance = distances.get(key(cell.x, cell.y))!;
+    const neighbors = [{ x: cell.x + 1, y: cell.y }, { x: cell.x - 1, y: cell.y },
+      { x: cell.x, y: cell.y + 1 }, { x: cell.x, y: cell.y - 1 }];
+    for (const next of neighbors) {
+      if (next.x < 2 || next.x > 27 || next.y < 2 || next.y > 15 || distances.has(key(next.x, next.y))) continue;
+      if (touchesWall({ x: next.x * TILE + 16, y: next.y * TILE + 16 }, 12, walls)) continue;
+      distances.set(key(next.x, next.y), distance + 1);
+      queue.push(next);
     }
+  }
+  return distances;
+}
 
-    private obterCorDoSetorAtual(): Color {
-        return this.coresSetores[(this.salaAtual - 1) % this.coresSetores.length];
-    }
-
-    private criarBordasComPortas(): void {
-        const espessura = 24;
-
-        this.criarParede(170, 10, 340, espessura, false);
-        this.criarParede(630, 10, 340, espessura, false);
-
-        this.criarParede(170, 590, 340, espessura, false);
-        this.criarParede(630, 590, 340, espessura, false);
-
-        this.criarParede(10, 120, espessura, 240, false);
-        this.criarParede(10, 480, espessura, 240, false);
-
-        this.criarParede(790, 120, espessura, 240, false);
-        this.criarParede(790, 480, espessura, 240, false);
-    }
-
-    private criarParede(
-        x: number,
-        y: number,
-        largura: number,
-        altura: number,
-        interna: boolean,
-        cor?: Color
-    ): void {
-        const corEscolhida = cor ?? this.obterCorDoSetorAtual();
-
-        const parede = new Actor({
-            name: "Wall",
-            pos: vec(x, y),
-            width: largura,
-            height: altura,
-            color: corEscolhida,
-            collisionType: CollisionType.Fixed
-        });
-        this.add(parede);
-
-        if (interna) {
-            this.paredesInternas.push(parede);
-        } else {
-            this.paredesBorda.push(parede);
-        }
-    }
-
-    private gerarLabirintoInterno(portaEntrada?: DirecaoPorta): void {
-        const corDoSetor = this.obterCorDoSetorAtual();
-
-        for (const borda of this.paredesBorda) {
-            borda.color = corDoSetor;
-        }
-
-        for (const parede of this.paredesInternas) {
-            parede.kill();
-        }
-        this.paredesInternas = [];
-
-        const pilares = [
-            { x: 280, y: 200 },
-            { x: 520, y: 200 },
-            { x: 280, y: 400 },
-            { x: 520, y: 400 }
-        ];
-
-        for (const pilar of pilares) {
-            const direcao = Math.floor(Math.random() * 4);
-
-            if (direcao === 0) {
-                this.criarParede(pilar.x, pilar.y - 50, 20, 120, true);
-            } else if (direcao === 1) {
-                this.criarParede(pilar.x, pilar.y + 50, 20, 120, true);
-            } else if (direcao === 2) {
-                this.criarParede(pilar.x - 60, pilar.y, 140, 20, true);
-            } else {
-                this.criarParede(pilar.x + 60, pilar.y, 140, 20, true);
-            }
-        }
-
-        if (portaEntrada) {
-            this.fecharPortaDeEntrada(portaEntrada);
-        }
-    }
-
-    private fecharPortaDeEntrada(porta: DirecaoPorta): void {
-        const corBarreira = Color.fromHex("#8B0000");
-
-        if (porta === "esquerda") {
-            this.criarParede(10, 300, 20, 120, true, corBarreira);
-        } else if (porta === "direita") {
-            this.criarParede(790, 300, 20, 120, true, corBarreira);
-        } else if (porta === "topo") {
-            this.criarParede(400, 10, 120, 20, true, corBarreira);
-        } else if (porta === "base") {
-            this.criarParede(400, 590, 120, 20, true, corBarreira);
-        }
-    }
-
-    private prepararSala(portaEntrada?: DirecaoPorta): void {
-        this.gerarLabirintoInterno(portaEntrada);
-        this.gerarInimigos();
-    }
-
-    private gerarInimigos(): void {
-        for (const inimigo of this.inimigos) {
-            inimigo.kill();
-        }
-        this.inimigos = [];
-
-        const quantidade = Math.min(2 + Math.floor((this.salaAtual - 1) / 2), 6);
-        const dificuldade = Math.min(this.salaAtual, 10);
-        const pontosDeSpawn = this.obterPontosDeSpawn(quantidade);
-
-        for (const ponto of pontosDeSpawn) {
-            const inimigo = new Enemy(ponto, this.player, dificuldade, () => {
-                this.pontos += 100;
-                this.inimigos = this.inimigos.filter((atual) => atual !== inimigo);
-            });
-
-            this.inimigos.push(inimigo);
-            this.add(inimigo);
-        }
-    }
-
-    public obterPontosDeSpawn(quantidade: number = 3): vec[] {
-        const pontosSeguros = this.pontosBaseDeSpawn.filter(
-            ponto => ponto.distance(this.player.pos) > 200
-        );
-
-        return this.embaralhar(pontosSeguros).slice(0, quantidade);
-    }
-
-    private embaralhar<T>(itens: T[]): vec[] {
-        const copia = [...itens];
-
-        for (let i = copia.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [copia[i], copia[j]] = [copia[j], copia[i]];
-        }
-
-        return copia;
-    }
-
-    private criarHUD(): void {
-        // Heart icones HUD
-        this.vidasLabel = new Label({
-            text: `Vidas: ${this.player.getLives()}`,
-            pos: vec(35, 40),
-            z: 100,
-            font: new Font({
-                family: "NinjaAdventure",
-                size: 20,
-                unit: FontUnit.Px,
-                color: Color.White
-            })
-        });
-        this.add(this.vidasLabel);
-
-        // Desenha corações ao lado do texto
-        for (let i = 0; i < 3; i++) {
-            const heartImg: ImageSource = new ImageSource("./assets/ninja/ui/heart.png");
-            const heart = new Sprite({
-                image: heartImg,
-                sourceView: { x: 0, y: 0, width: 16, height: 16 }
-            });
-            const heartActor = new Actor({
-                pos: vec(80 + i * 25, 38),
-                width: 16,
-                height: 16,
-                graphic: heart
-            });
-            this.add(heartActor);
-        }
-
-        this.salaLabel = new Label({
-            text: `Setor: ${this.salaAtual}`,
-            pos: vec(200, 40),
-            z: 100,
-            font: new Font({
-                family: "NinjaAdventure",
-                size: 20,
-                unit: FontUnit.Px,
-                color: Color.Cyan
-            })
-        });
-        this.add(this.salaLabel);
-
-        this.pontosLabel = new Label({
-            text: "Score: 0000",
-            pos: vec(765, 40),
-            z: 100,
-            font: new Font({
-                family: "NinjaAdventure",
-                size: 20,
-                unit: FontUnit.Px,
-                color: Color.Yellow,
-                textAlign: TextAlign.Right
-            })
-        });
-        this.add(this.pontosLabel);
-
-        // Banner de templo acima do HUD
-        const banner = new Actor({
-            pos: vec(400, -20),
-            width: 400,
-            height: 80,
-            color: Color.fromHex("#3d1a0a")
-        });
-        this.add(banner);
-
-        this.gameOverLabel = new Label({
-            text: "GAME OVER\nPressione R para reiniciar",
-            pos: vec(400, 280),
-            z: 100,
-            font: new Font({
-                family: "NinjaAdventure",
-                size: 26,
-                unit: FontUnit.Px,
-                color: Color.Red,
-                textAlign: TextAlign.Center
-            })
-        });
-        this.gameOverLabel.visible = false;
-        this.add(this.gameOverLabel);
-    }
-
-    private limparTiros(): void {
-        this.actors.filter(a => a instanceof Bullet).forEach(b => b.kill());
-    }
-
-    override onPostUpdate(engine: Engine, elapsedMs: number): void {
-        const mortoAgora = this.player.isPlayerDead();
-
-        if (this.estavaMorto && !mortoAgora) {
-            this.pontos = 0;
-            this.salaAtual = 1;
-            this.limparTiros();
-            this.prepararSala();
-        }
-        this.estavaMorto = mortoAgora;
-
-        const scoreFormatado = String(this.pontos).padStart(4, "0");
-        this.vidasLabel.text = `Vidas: ${this.player.getLives()}`;
-        this.salaLabel.text = `Setor: ${this.salaAtual}`;
-        this.pontosLabel.text = `Score: ${scoreFormatado}`;
-
-        if (mortoAgora) {
-            this.gameOverLabel.visible = true;
-            this.gameOverLabel.text = `GAME OVER\nScore Final: ${scoreFormatado} (Setor ${this.salaAtual})\nPressione R para reiniciar`;
-        } else {
-            this.gameOverLabel.visible = false;
-        }
-
-        let portaEntrada: DirecaoPorta | undefined;
-
-        if (this.player.pos.x > 800) {
-            this.player.pos.x = 55;
-            portaEntrada = "esquerda";
-        } else if (this.player.pos.x < 0) {
-            this.player.pos.x = 745;
-            portaEntrada = "direita";
-        } else if (this.player.pos.y > 600) {
-            this.player.pos.y = 55;
-            portaEntrada = "topo";
-        } else if (this.player.pos.y < 0) {
-            this.player.pos.y = 545;
-            portaEntrada = "base";
-        }
-
-        if (portaEntrada) {
-            this.salaAtual++;
-            this.pontos += 50;
-            this.limparTiros();
-            this.prepararSala(portaEntrada);
-        }
-    }
+export function chaseTarget(enemy: Point, player: Point, distances: Map<string, number>): Point {
+  const x = Math.floor(enemy.x / TILE);
+  const y = Math.floor(enemy.y / TILE);
+  if (Math.abs(enemy.x - player.x) + Math.abs(enemy.y - player.y) < 50) return player;
+  const cells = [{ x, y }, { x: x + 1, y }, { x: x - 1, y }, { x, y: y + 1 }, { x, y: y - 1 }];
+  const best = cells.reduce((current, cell) => (distances.get(`${cell.x},${cell.y}`) ?? Infinity)
+    < (distances.get(`${current.x},${current.y}`) ?? Infinity) ? cell : current);
+  return { x: best.x * TILE + 16, y: best.y * TILE + 16 };
 }

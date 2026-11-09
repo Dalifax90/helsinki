@@ -1,14 +1,83 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Ninja Berzerk: sobreviva aos setores do templo, elimine samurais corrompidos e faça pontos." />
-    <link rel="stylesheet" href="./src/style.css">
-    <title>Ninja Berzerk</title>
-  </head>
-  <body>
-    <script type="module" src="./src/main.ts"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f4f1e9" />
+  <meta name="description" content="Ninja Berzerk: roguelike de ação com salas conectadas, itens coletáveis e chefes. Jogue no navegador." />
+  <link rel="icon" href="./favicon.ico" />
+  <link rel="preload" href="./assets/fonts/fraunces.ttf" as="font" type="font/ttf" crossorigin />
+  <link rel="preload" href="./assets/fonts/public-sans.ttf" as="font" type="font/ttf" crossorigin />
+  <title>Ninja Berzerk — Roguelike de ação</title>
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <a class="wordmark" href="./" aria-label="Ninja Berzerk, início">
+        <svg class="brand-symbol" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="m16 2 4 10 10 4-10 4-4 10-4-10-10-4 10-4Z" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="3" stroke="currentColor" stroke-width="2"/></svg>
+        NINJA BERZERK
+      </a>
+      <nav aria-label="Navegação principal"><a href="#jogar">Jogar</a><a href="#controles">Controles</a><a href="#creditos">Créditos</a></nav>
+      <button id="sound" class="quiet-button" type="button">Som ligado</button>
+    </header>
+    <section class="introduction" aria-labelledby="page-title">
+      <div class="title-block"><p class="eyebrow">ROGUELIKE DE AÇÃO / NAVEGADOR</p><h1 id="page-title">Ninja<br>Berzerk<span>.</span></h1></div>
+      <div class="intro-notes"><p>Salas conectadas, itens coletáveis<br>e combate contra chefes.</p><dl><div><dt>Controles</dt><dd>Teclado, mouse ou toque</dd></div><div><dt>Progressão</dt><dd>Salas e andares</dd></div><div><dt>Arte</dt><dd>Ninja Adventure</dd></div></dl></div>
+    </section>
+    <div class="section-label" id="jogar"><span>01 / JOGAR</span></div>
+    <section class="game-frame" aria-label="Ninja Berzerk">
+      <div class="hud">
+        <div class="hud-sector"><span class="hud-caption">SETOR</span><strong id="sector">01</strong><span class="sector-name">Pátio dos ecos</span></div>
+        <div id="hearts" aria-label="3 vidas"><span class="heart"></span><span class="heart"></span><span class="heart"></span></div>
+        <div class="score"><span class="hud-caption">PONTOS</span><strong id="score">000000</strong></div>
+        <button id="pause" class="pause-button" aria-label="Pausar jogo" disabled><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 4v12M13 4v12" stroke="currentColor" stroke-width="2"/></svg></button>
+      </div>
+      <div class="stage">
+        <canvas id="game" width="960" height="576" tabindex="0" aria-label="Templo: use WASD ou setas para mover, espaço para disparar, E para lâmina, Q para nova e Shift para esquivar."></canvas>
+        <div id="boss-panel" class="boss-panel" hidden>
+          <div><strong>AKUMA <span>Guardião rubro</span></strong><span id="boss-phase">O guardião despertou</span></div>
+          <div id="boss-health" class="boss-health" role="progressbar" aria-label="Vida de Akuma" aria-valuemin="0" aria-valuemax="30" aria-valuenow="30"><span id="boss-fill"></span></div>
+        </div>
+        <aside class="minimap" aria-label="Minimapa da exploração"><span id="floor-label">ANDAR 01</span><div id="map-grid"></div><small>● você · ◆ chefe</small></aside>
+        <div id="overlay" class="overlay">
+          <div class="menu-panel">
+            <p id="overlay-kicker" class="eyebrow">PARTIDA</p>
+            <h2 id="overlay-title">Nova partida.</h2>
+            <p id="overlay-description">Explore o templo, encontre itens e derrote o guardião de cada andar. Ao morrer, a partida recomeça sem melhorias.</p>
+            <button id="primary" class="primary-button" disabled>Carregando…</button>
+            <button id="boss-challenge" class="challenge-button" type="button" hidden>Desafiar o guardião <span>↗</span></button>
+            <span id="overlay-hint" class="menu-hint">Carregando o jogo.</span>
+          </div>
+        </div>
+      </div>
+      <div class="statusbar"><span id="status" role="status">Carregando o jogo…</span><span class="status-tag">NINJA ADVENTURE</span></div>
+      <div class="powerbar">
+        <button id="nova-button" class="nova-button" data-control="KeyQ" aria-label="Usar nova espiritual" disabled><svg class="nova-symbol" viewBox="0 0 32 32" fill="none" aria-hidden="true"><circle cx="16" cy="16" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M16 1v8m0 14v8M1 16h8m14 0h8M5 5l6 6m10 10 6 6M5 27l6-6m10-10 6-6" stroke="currentColor" stroke-width="1.5"/></svg><span>Nova espiritual<small id="nova-status">Q · PRONTA</small></span></button>
+        <div id="inventory" class="inventory" aria-label="Itens equipados"></div>
+        <span id="loot-notice" class="loot-notice">Procure melhorias nas salas de tesouro.</span>
+      </div>
+    </section>
+    <div class="touch-controls" aria-label="Controles de toque">
+      <div class="dpad"><button data-control="KeyW" aria-label="Mover para cima">↑</button><button data-control="KeyA" aria-label="Mover para esquerda">←</button><button data-control="KeyS" aria-label="Mover para baixo">↓</button><button data-control="KeyD" aria-label="Mover para direita">→</button></div>
+      <div class="touch-actions"><button data-control="ShiftLeft" aria-label="Esquivar">Shift</button><button data-control="KeyE" aria-label="Ataque corpo a corpo">E</button><button data-control="Space" class="touch-fire" aria-label="Disparar shuriken">Tiro</button></div>
+    </div>
+    <section class="instructions" id="controles" aria-labelledby="controls-title">
+      <div class="instructions-heading"><p class="eyebrow">02 / REFERÊNCIA</p><h2 id="controls-title">Controles</h2><p>A mira acompanha o mouse.<br>Sem o mouse, o ataque segue a direção do personagem.</p></div>
+      <dl class="control-table">
+        <div><dt>Movimento</dt><dd><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ou setas</dd></div>
+        <div><dt>Disparo</dt><dd><kbd>ESPAÇO</kbd> ou botão esquerdo</dd></div>
+        <div><dt>Lâmina</dt><dd><kbd>E</kbd> ou botão direito</dd></div>
+        <div><dt>Nova espiritual</dt><dd><kbd>Q</kbd></dd></div>
+        <div><dt>Esquiva</dt><dd><kbd>SHIFT</kbd> + movimento</dd></div>
+        <div><dt>Pausa / som</dt><dd><kbd>ESC</kbd> ou <kbd>P</kbd> / <kbd>M</kbd></dd></div>
+      </dl>
+    </section>
+    <footer id="creditos">
+      <div class="footer-project"><p class="eyebrow">03 / CRÉDITOS</p><strong>Ninja Berzerk</strong><p>Projeto acadêmico de jogos.<br>Inspirado em Berzerk, The Binding of Isaac<br>e Enter the Gungeon.</p></div>
+      <div class="footer-resources"><span class="footer-label">ARTE & ÁUDIO</span><a href="https://pixel-boy.itch.io/ninja-adventure-asset-pack" target="_blank" rel="noopener noreferrer">Ninja Adventure — Pixel-Boy & AAA <span>↗</span></a><a href="./assets/ninja/LICENSE.txt" target="_blank" rel="noopener noreferrer">Licença dos recursos · CC0 <span>↗</span></a><span class="footer-label font-credit">TIPOGRAFIA</span><span>Fraunces / Public Sans</span></div>
+      <a class="back-top" href="#page-title">Voltar ao topo ↑</a>
+    </footer>
+  </main>
+  <script type="module" src="./src/main.ts"></script>
+</body>
 </html>

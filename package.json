@@ -1,30 +1,28 @@
 {
-  "name": "star-berzerk",
+  "name": "ninja-berzerk",
   "version": "1.0.0",
-  "description": "Jogo arcade inspirado em Berzerk com tema Star Wars, feito com Excalibur.js e Vite.",
+  "description": "Arcade de sobrevivência com salas de combate, esquiva e arte Ninja Adventure. TypeScript, Canvas 2D e Vite.",
   "main": "src/main.ts",
   "scripts": {
     "dev": "vite",
     "start": "vite",
     "build": "tsc && vite build",
     "serve": "vite preview",
-    "test": "npm run build && npx playwright test",
-    "test:integration-update": "npx playwright test --update-snapshots"
+    "test": "npm run build && npx playwright test"
   },
   "repository": {},
   "keywords": [
-    "excalibur",
-    "excaliburjs",
+    "ninja",
+    "berzerk",
+    "roguelite",
+    "typescript",
     "vite",
-    "game-engine"
+    "canvas"
   ],
   "author": "",
   "license": "",
   "bugs": {},
   "homepage": "",
-  "dependencies": {
-    "excalibur": "0.32.0"
-  },
   "devDependencies": {
     "@playwright/test": "^1.49.1",
     "@types/node": "^22.10.2",

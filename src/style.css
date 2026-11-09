@@ -1,5 +1,7 @@
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: black;
-  }
-}
+@import "./styles/base.css";
+@import "./styles/game.css";
+@import "./styles/menu.css";
+@import "./styles/details.css";
+@import "./styles/responsive.css";
+@import "./styles/touch.css";
+@import "./styles/powers.css";
