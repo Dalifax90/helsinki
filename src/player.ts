@@ -1,6 +1,19 @@
-import { Actor, Collider, CollisionContact, Engine, Side, vec, Keys, CollisionType, ImageSource } from "excalibur";
+import {
+  Actor,
+  Collider,
+  CollisionContact,
+  CollisionType,
+  Engine,
+  ImageSource,
+  Keys,
+  Side,
+  Sprite,
+  vec
+} from "excalibur";
 import { Resources } from "./resources";
 import { Bullet } from "./bullet";
+
+type Direcao = "up" | "down" | "left" | "right";
 
 export class Player extends Actor {
   private speed: number = 200;
@@ -9,7 +22,8 @@ export class Player extends Actor {
   private invulnerability: boolean = false;
   private invulnerabilityTime: number = 2000;
   private invulnerabilityTimer: number = 0;
-  private currentDirection: string = "down";
+  private currentDirection: Direcao = "down";
+  private readonly sprites = new Map<Direcao, Sprite>();
 
   constructor() {
     super({
@@ -45,104 +59,141 @@ export class Player extends Actor {
     this.invulnerability = false;
     this.invulnerabilityTimer = 0;
     this.rotation = 0;
+    this.scale = vec(1, 1);
     this.graphics.opacity = 1;
     this.pos = vec(150, 150);
   }
 
-  private aplicarSprite(recurso: ImageSource): void {
-    const imgOriginal = recurso.image;
-    const w = imgOriginal.width;
-    const h = imgOriginal.height;
-
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d");
-
-    if (ctx && w > 0 && h > 0) {
-      ctx.drawImage(imgOriginal, 0, 0);
-      const imgData = ctx.getImageData(0, 0, w, h);
-      const d = imgData.data;
-
-      
-      const ehFundoClaro = (idx: number) => {
-        const r = d[idx], g = d[idx + 1], b = d[idx + 2], a = d[idx + 3];
-        if (a === 0) return true;
-        const max = Math.max(r, g, b);
-        const min = Math.min(r, g, b);
-       
-        return max > 195 && (max - min) < 35;
-      };
-
-      
-      const visitado = new Uint8Array(w * h);
-      const fila: number[] = [];
-
-      for (let x = 0; x < w; x++) {
-        fila.push(x, (h - 1) * w + x);
-      }
-      for (let y = 0; y < h; y++) {
-        fila.push(y * w, y * w + (w - 1));
-      }
-
-      while (fila.length > 0) {
-        const pos = fila.pop()!;
-        if (visitado[pos]) continue;
-        visitado[pos] = 1;
-
-        const idx = pos * 4;
-        if (ehFundoClaro(idx)) {
-          d[idx + 3] = 0; 
-          const x = pos % w;
-          const y = Math.floor(pos / w);
-          if (x > 0) fila.push(pos - 1);
-          if (x < w - 1) fila.push(pos + 1);
-          if (y > 0) fila.push(pos - w);
-          if (y < h - 1) fila.push(pos + w);
-        }
-      }
-
-      ctx.putImageData(imgData, 0, 0);
-    }
-
-    const fonteLimpa = new ImageSource(canvas.toDataURL());
-    fonteLimpa.load().then(() => {
-      const sprite = fonteLimpa.toSprite();
-      const alturaAlvo = 55;
-      const proporcao = h > 0 ? w / h : 1;
-
-      sprite.destSize = {
-        width: Math.round(alturaAlvo * proporcao),
-        height: alturaAlvo
-      };
-      this.graphics.use(sprite);
-    });
+  private fontesPorDirecao(): Record<Direcao, ImageSource> {
+    return {
+      up: Resources.PlayerUp,
+      down: Resources.PlayerDown,
+      left: Resources.PlayerLeft,
+      right: Resources.PlayerRight
+    };
   }
 
-  changeDirection(direction: string): void {
+  private prepararSprites(): void {
+    const fontes = this.fontesPorDirecao();
+
+    for (const direcao of Object.keys(fontes) as Direcao[]) {
+      const fonte = this.removerFundo(fontes[direcao]);
+
+      void fonte.ready.then(() => {
+        const sprite = fonte.toSprite({ destSize: this.tamanhoDoSprite(fonte) });
+        this.sprites.set(direcao, sprite);
+
+        if (this.currentDirection === direcao) {
+          this.graphics.use(sprite);
+        }
+      });
+    }
+  }
+
+  private tamanhoDoSprite(fonte: ImageSource): { width: number; height: number } {
+    const alturaAlvo = 55;
+    const proporcao = fonte.height > 0 ? fonte.width / fonte.height : 1;
+
+    return {
+      width: Math.round(alturaAlvo * proporcao),
+      height: alturaAlvo
+    };
+  }
+
+  /**
+   * Remove o fundo claro dos sprites mantendo a transparência original.
+   * O processamento roda uma única vez por direção, e não a cada troca.
+   */
+  private removerFundo(fonte: ImageSource): ImageSource {
+    const imagem = fonte.image;
+    const largura = imagem.naturalWidth;
+    const altura = imagem.naturalHeight;
+
+    if (largura === 0 || altura === 0) {
+      return fonte;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = largura;
+    canvas.height = altura;
+
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) {
+      return fonte;
+    }
+
+    ctx.drawImage(imagem, 0, 0);
+    const dados = ctx.getImageData(0, 0, largura, altura);
+    const pixels = dados.data;
+
+    const ehFundoClaro = (indice: number): boolean => {
+      const r = pixels[indice];
+      const g = pixels[indice + 1];
+      const b = pixels[indice + 2];
+      const a = pixels[indice + 3];
+
+      if (a === 0) return true;
+
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      return max > 195 && max - min < 35;
+    };
+
+    const visitado = new Uint8Array(largura * altura);
+    const fila: number[] = [];
+
+    const enfileirar = (posicao: number): void => {
+      if (visitado[posicao]) return;
+      visitado[posicao] = 1;
+      fila.push(posicao);
+    };
+
+    for (let x = 0; x < largura; x++) {
+      enfileirar(x);
+      enfileirar((altura - 1) * largura + x);
+    }
+    for (let y = 0; y < altura; y++) {
+      enfileirar(y * largura);
+      enfileirar(y * largura + largura - 1);
+    }
+
+    for (let i = 0; i < fila.length; i++) {
+      const posicao = fila[i];
+      const indice = posicao * 4;
+
+      if (!ehFundoClaro(indice)) continue;
+
+      pixels[indice + 3] = 0;
+
+      const x = posicao % largura;
+      const y = (posicao - x) / largura;
+
+      if (x > 0) enfileirar(posicao - 1);
+      if (x < largura - 1) enfileirar(posicao + 1);
+      if (y > 0) enfileirar(posicao - largura);
+      if (y < altura - 1) enfileirar(posicao + largura);
+    }
+
+    ctx.putImageData(dados, 0, 0);
+
+    return ImageSource.fromHtmlCanvasElement(canvas);
+  }
+
+  changeDirection(direction: Direcao): void {
     if (this.currentDirection === direction) {
       return;
     }
 
     this.currentDirection = direction;
-    switch (direction) {
-      case "up":
-        this.aplicarSprite(Resources.PlayerUp);
-        break;
-      case "down":
-        this.aplicarSprite(Resources.PlayerDown);
-        break;
-      case "right":
-        this.aplicarSprite(Resources.PlayerRight);
-        break;
-      case "left":
-        this.aplicarSprite(Resources.PlayerLeft);
-        break;
+
+    const sprite = this.sprites.get(direction);
+    if (sprite) {
+      this.graphics.use(sprite);
     }
   }
 
   override onInitialize(): void {
-    this.aplicarSprite(Resources.PlayerDown);
+    this.prepararSprites();
   }
 
   override onPreUpdate(engine: Engine, elapsedMs: number): void {
