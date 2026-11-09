@@ -9,7 +9,7 @@ export class Player extends Actor {
   private invulnerability: boolean = false;
   private invulnerabilityTime: number = 2000;
   private invulnerabilityTimer: number = 0;
-  private currentDirection: string = "front";
+  private currentDirection: string = "down";
 
   constructor() {
     super({
@@ -126,11 +126,11 @@ export class Player extends Actor {
 
     this.currentDirection = direction;
     switch (direction) {
-      case "front":
-        this.aplicarSprite(Resources.PlayerFront);
+      case "up":
+        this.aplicarSprite(Resources.PlayerUp);
         break;
-      case "back":
-        this.aplicarSprite(Resources.PlayerBack);
+      case "down":
+        this.aplicarSprite(Resources.PlayerDown);
         break;
       case "right":
         this.aplicarSprite(Resources.PlayerRight);
@@ -142,7 +142,7 @@ export class Player extends Actor {
   }
 
   override onInitialize(): void {
-    this.aplicarSprite(Resources.PlayerFront);
+    this.aplicarSprite(Resources.PlayerDown);
   }
 
   override onPreUpdate(engine: Engine, elapsedMs: number): void {
@@ -173,13 +173,13 @@ export class Player extends Actor {
 
     if (engine.input.keyboard.isHeld(Keys.W)) {
       this.vel = vec(0, -this.speed);
-      this.changeDirection("front");
+      this.changeDirection("up");
     } else if (engine.input.keyboard.isHeld(Keys.A)) {
       this.vel = vec(-this.speed, 0);
       this.changeDirection("left");
     } else if (engine.input.keyboard.isHeld(Keys.S)) {
       this.vel = vec(0, this.speed);
-      this.changeDirection("back");
+      this.changeDirection("down");
     } else if (engine.input.keyboard.isHeld(Keys.D)) {
       this.vel = vec(this.speed, 0);
       this.changeDirection("right");
@@ -199,10 +199,10 @@ export class Player extends Actor {
       let direction = vec(0, 1);
 
       switch (this.currentDirection) {
-        case "front":
+        case "up":
           direction = vec(0, -1);
           break;
-        case "back":
+        case "down":
           direction = vec(0, 1);
           break;
         case "right":
