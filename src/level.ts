@@ -16,6 +16,7 @@ import {
 } from "excalibur";
 import { Player } from "./player";
 import { Bullet } from "./bullet";
+import { Enemy } from "./enemy";
 
 type DirecaoPorta = "topo" | "base" | "esquerda" | "direita";
 
@@ -23,6 +24,7 @@ export class MyLevel extends Scene {
     private player!: Player;
     private paredesInternas: Actor[] = [];
     private paredesBorda: Actor[] = [];
+    private inimigos: Enemy[] = [];
     private vidasLabel!: Label;
     private gameOverLabel!: Label;
     private estavaMorto: boolean = false;
@@ -55,7 +57,7 @@ export class MyLevel extends Scene {
         this.add(this.player);
 
         this.criarBordasComPortas();
-        this.gerarLabirintoInterno();
+        this.prepararSala();
         this.criarHUD();
     }
 
@@ -134,6 +136,32 @@ export class MyLevel extends Scene {
             this.criarParede(400, 10, 120, 20, true, corBarreira);
         } else if (porta === "base") {
             this.criarParede(400, 590, 120, 20, true, corBarreira);
+        }
+    }
+
+    private prepararSala(portaEntrada?: DirecaoPorta): void {
+        this.gerarLabirintoInterno(portaEntrada);
+        this.gerarInimigos();
+    }
+
+    private gerarInimigos(): void {
+        for (const inimigo of this.inimigos) {
+            inimigo.kill();
+        }
+        this.inimigos = [];
+
+        const quantidade = Math.min(2 + Math.floor((this.salaAtual - 1) / 2), 6);
+        const dificuldade = Math.min(this.salaAtual, 10);
+        const pontosDeSpawn = this.obterPontosDeSpawn(quantidade);
+
+        for (const ponto of pontosDeSpawn) {
+            const inimigo = new Enemy(ponto, this.player, dificuldade, () => {
+                this.adicionarPontos(100);
+                this.inimigos = this.inimigos.filter((atual) => atual !== inimigo);
+            });
+
+            this.inimigos.push(inimigo);
+            this.add(inimigo);
         }
     }
 
@@ -247,7 +275,7 @@ export class MyLevel extends Scene {
             this.pontuacao = 0;
             this.salaAtual = 1;
             this.limparTiros();
-            this.gerarLabirintoInterno();
+            this.prepararSala();
         }
         this.estavaMorto = mortoAgora;
 
@@ -281,7 +309,7 @@ export class MyLevel extends Scene {
             this.salaAtual++;
             this.adicionarPontos(50);
             this.limparTiros();
-            this.gerarLabirintoInterno(portaEntrada);
+            this.prepararSala(portaEntrada);
         }
     }
 
