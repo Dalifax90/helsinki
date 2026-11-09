@@ -56,12 +56,14 @@ export class Player extends Actor {
   restartPlayer(): void {
     this.lives = 3;
     this.isDead = false;
-    this.invulnerability = false;
-    this.invulnerabilityTimer = 0;
+    // Evita renascer tomando dano imediato de uma parede/inimigo próximo
+    this.invulnerability = true;
+    this.invulnerabilityTimer = this.invulnerabilityTime;
     this.rotation = 0;
     this.scale = vec(1, 1);
     this.graphics.opacity = 1;
     this.pos = vec(150, 150);
+    this.changeDirection("down");
   }
 
   private fontesPorDirecao(): Record<Direcao, ImageSource> {
