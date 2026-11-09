@@ -2,14 +2,11 @@ import {
     Actor,
     CollisionType,
     Color,
-    DefaultLoader,
     Engine,
-    ExcaliburGraphicsContext,
     Font,
     FontUnit,
     Label,
     Scene,
-    SceneActivationContext,
     TextAlign,
     Vector,
     vec
@@ -312,11 +309,4 @@ export class MyLevel extends Scene {
             this.prepararSala(portaEntrada);
         }
     }
-
-    override onPreLoad(loader: DefaultLoader): void {}
-    override onActivate(context: SceneActivationContext<unknown>): void {}
-    override onDeactivate(context: SceneActivationContext): void {}
-    override onPreUpdate(engine: Engine, elapsedMs: number): void {}
-    override onPreDraw(ctx: ExcaliburGraphicsContext, elapsedMs: number): void {}
-    override onPostDraw(ctx: ExcaliburGraphicsContext, elapsedMs: number): void {}
 }

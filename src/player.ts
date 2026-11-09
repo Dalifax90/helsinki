@@ -280,10 +280,6 @@ export class Player extends Actor {
     }
   }
 
-  override onPostUpdate(engine: Engine, elapsedMs: number): void {}
-
-  override onPreCollisionResolve(self: Collider, other: Collider, side: Side, contact: CollisionContact): void {}
-
   override onPostCollisionResolve(self: Collider, other: Collider, side: Side, contact: CollisionContact): void {
     if (this.invulnerability === true || this.isDead === true) {
       return;
@@ -298,8 +294,4 @@ export class Player extends Actor {
     this.invulnerability = true;
     this.invulnerabilityTimer = this.invulnerabilityTime;
   }
-
-  override onCollisionStart(self: Collider, other: Collider, side: Side, contact: CollisionContact): void {}
-
-  override onCollisionEnd(self: Collider, other: Collider, side: Side, lastContact: CollisionContact): void {}
 }
