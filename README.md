@@ -1,10 +1,11 @@
-# Star Berzerk
+# Ninja Berzerk
 
-Jogo arcade 2D inspirado em **Berzerk**, com tema de **Star Wars**, desenvolvido com
-[Excalibur.js](https://excaliburjs.com), TypeScript e Vite.
+Jogo arcade 2D inspirado em **Berzerk**, com tema de **ninja/templo**, desenvolvido com
+[Excalibur.js](https://excaliburjs.com), TypeScript e Vite. Os assets gráficos são
+da [Ninja Adventure](https://opengameart.org/content/ninja-adventure-roguelike) (licença CC0).
 
-Você controla Luke Skywalker em uma sequência de setores de uma estação imperial.
-Cada setor tem um labirinto gerado aleatoriamente, soldados imperiais e paredes
+Você controla um ninja azul em uma sequência de setores de um templo antigo.
+Cada setor tem um labirinto gerado aleatoriamente, samurais corrompidos e paredes
 eletrificadas. Atravesse as portas para avançar, elimine inimigos e sobreviva o
 máximo que puder.
 
@@ -13,8 +14,9 @@ máximo que puder.
 | Tecla | Ação |
 | --- | --- |
 | `W`, `A`, `S`, `D` | Mover (inclusive na diagonal) |
-| `Espaço` | Disparar o blaster |
+| `Espaço` | Disparar shuriken |
 | `Enter` | Iniciar o jogo no menu |
+| `M` | Ativar/desativar a música de fundo |
 | `R` | Reiniciar após o game over |
 
 ## Mecânicas
@@ -25,9 +27,10 @@ máximo que puder.
 - **Paredes eletrificadas:** qualquer contato com parede causa dano.
 - **Setores:** ao cruzar uma porta, um novo labirinto é gerado, a cor do setor
   muda e a dificuldade aumenta.
-- **Inimigos:** soldados perseguem o jogador e atiram. Cada abate vale 100 pontos.
+- **Inimigos:** samurais perseguem o jogador e atiram. Cada abate vale 100 pontos.
 - **Pontuação:** +50 por setor concluído e +100 por inimigo eliminado.
 - **Game over:** ao perder as 3 vidas. Pressione `R` para recomeçar.
+- **Efeito de tremor de tela:** ao tomar dano, a tela treme brevemente.
 
 ## Tecnologias
 
@@ -65,14 +68,14 @@ npx playwright install chromium
 
 ```
 src/
-  main.ts         configuração da engine e das cenas
-  startScreen.ts  tela inicial
+  main.ts         configuração da engine e das cenas (inclui sistema de música)
+  startScreen.ts  tela inicial com tema de templo e torii
   level.ts        setores, labirinto, HUD, pontuação e game over
-  player.ts       movimentação, sprites, dano e disparo
-  enemy.ts        IA dos soldados imperiais
-  bullet.ts       projéteis do jogador e dos inimigos
-  resources.ts    carregamento dos sprites
-public/images/    sprites do jogo
+  player.ts       movimentação, sprites do ninja, dano e disparo de shuriken
+  enemy.ts        IA dos samurais corrompidos
+  bullet.ts       shurikens do jogador e dos inimigos
+  resources.ts    carregamento dos sprites, fonte e áudio Ninja Adventure
+public/assets/ninja/    assets do Ninja Adventure (CC0)
 tests/            testes de integração
 ```
 
@@ -83,6 +86,10 @@ cada push na branch `main`.
 
 ## Créditos
 
-Baseado no template oficial
-[`excaliburjs/template-ts-vite`](https://github.com/excaliburjs/template-ts-vite),
-licenciado sob BSD 2-Clause (veja `LICENSE`).
+- Baseado no template oficial
+  [`excaliburjs/template-ts-vite`](https://github.com/excaliburjs/template-ts-vite),
+  licenciado sob BSD 2-Clause (veja `LICENSE`).
+- Gráficos: [Ninja Adventure](https://opengameart.org/content/ninja-adventure-roguelike)
+  por [Bluecarrot16](https://opengameart.org/users/bluecarrot16), licenciado sob CC0 1.0.
+- Fonte: `font_normal.ttf` incluída no Ninja Adventure (suporta acentos).
+- Música: `theme_lost_village.ogg` incluída no Ninja Adventure.
