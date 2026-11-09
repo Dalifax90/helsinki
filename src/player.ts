@@ -266,7 +266,8 @@ export class Player extends Actor {
 
       const bullet = new Bullet(
         direction,
-        this.pos.add(direction.scale(45))
+        this.pos.add(direction.scale(45)),
+        "player"
       );
       this.scene?.add(bullet);
     }

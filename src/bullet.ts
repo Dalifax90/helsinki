@@ -1,9 +1,12 @@
 import { Actor, CollisionType, Circle, Color, Vector } from "excalibur";
 
+export type BulletOwner = "player" | "enemy";
+
 export class Bullet extends Actor {
     private speed: number = 400;
+    readonly owner: BulletOwner;
 
-    constructor(direction: Vector, position: Vector) {
+    constructor(direction: Vector, position: Vector, owner: BulletOwner = "player") {
         super({
             pos: position,
             width: 15,
@@ -11,10 +14,12 @@ export class Bullet extends Actor {
             collisionType: CollisionType.Passive
         });
 
+        this.owner = owner;
+
         this.graphics.use(
             new Circle({
                 radius: 7.5,
-                color: Color.Yellow
+                color: owner === "player" ? Color.Yellow : Color.Red
             })
         );
 
