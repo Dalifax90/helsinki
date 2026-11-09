@@ -24,6 +24,7 @@ export class Enemy extends Actor {
   private direction: Vector;
   private readonly target: Player;
   private readonly onDeath: () => void;
+  private morto: boolean = false;
 
   constructor(position: Vector, target: Player, difficulty: number, onDeath: () => void) {
     super({
@@ -120,6 +121,11 @@ export class Enemy extends Actor {
   }
 
   private morrer(): void {
+    if (this.morto) {
+      return;
+    }
+
+    this.morto = true;
     this.onDeath();
     this.kill();
   }
