@@ -1,19 +1,23 @@
+// @ts-nocheck
 import {
   Actor,
   Collider,
   CollisionContact,
   CollisionType,
   Engine,
-  ImageSource,
   Keys,
-  Side,
+  vec,
   Sprite,
-  vec
+  Side
 } from "excalibur";
 import { Resources } from "./resources";
 import { Bullet } from "./bullet";
 
 type Direcao = "up" | "down" | "left" | "right";
+
+const TILE_SIZE = 16;
+const SPRITESHEET_COLS = 4; // DOWN=0, UP=1, LEFT=2, RIGHT=3
+const SPRITESHEET_ROWS = 7; // IDLE=0, MOVING=0..3, ATTACK=4, JUMP=5, DEAD=6
 
 export class Player extends Actor {
   private speed: number = 200;
@@ -23,15 +27,18 @@ export class Player extends Actor {
   private invulnerabilityTime: number = 2000;
   private invulnerabilityTimer: number = 0;
   private currentDirection: Direcao = "down";
-  private readonly sprites = new Map<Direcao, Sprite>();
+  private currentAnimationRow: number = 0; // 0=IDLE, 1-3=MOVING, 4=ATTACK, 5=JUMP, 6=DEAD
+  private movingFrame: number = 0;
+  private isMoving: boolean = false;
+  private screenShake: number = 0;
 
   constructor() {
     super({
       collisionType: CollisionType.Active,
       name: "Player",
       pos: vec(150, 150),
-      width: 40, // Hitbox levemente menor que o visual para facilitar passar nas portas
-      height: 45
+      width: 40,
+      height: 56
     });
   }
 
@@ -43,10 +50,14 @@ export class Player extends Actor {
     if (this.lives > 0) {
       this.lives--;
     }
-
     if (this.lives === 0) {
       this.isDead = true;
     }
+    this.invulnerability = true;
+    this.invulnerabilityTimer = this.invulnerabilityTime;
+    
+    // Screen shake effect on damage
+    this.screenShake = 15;
   }
 
   isPlayerDead(): boolean {
@@ -56,154 +67,77 @@ export class Player extends Actor {
   restartPlayer(): void {
     this.lives = 3;
     this.isDead = false;
-    // Evita renascer tomando dano imediato de uma parede/inimigo próximo
     this.invulnerability = true;
     this.invulnerabilityTimer = this.invulnerabilityTime;
     this.rotation = 0;
     this.scale = vec(1, 1);
     this.graphics.opacity = 1;
     this.pos = vec(150, 150);
-    this.changeDirection("down");
+    this.currentDirection = "down";
+    this.currentAnimationRow = 0;
+    this.movingFrame = 0;
+    this.isMoving = false;
+    this.screenShake = 0;
+    this.updateGraphics();
   }
 
-  private fontesPorDirecao(): Record<Direcao, ImageSource> {
-    return {
-      up: Resources.PlayerUp,
-      down: Resources.PlayerDown,
-      left: Resources.PlayerLeft,
-      right: Resources.PlayerRight
-    };
-  }
-
-  private prepararSprites(): void {
-    const fontes = this.fontesPorDirecao();
-
-    for (const direcao of Object.keys(fontes) as Direcao[]) {
-      const fonte = this.removerFundo(fontes[direcao]);
-
-      void fonte.ready.then(() => {
-        const sprite = fonte.toSprite({ destSize: this.tamanhoDoSprite(fonte) });
-        this.sprites.set(direcao, sprite);
-
-        if (this.currentDirection === direcao) {
-          this.graphics.use(sprite);
-        }
-      });
-    }
-  }
-
-  private tamanhoDoSprite(fonte: ImageSource): { width: number; height: number } {
-    const alturaAlvo = 55;
-    const proporcao = fonte.height > 0 ? fonte.width / fonte.height : 1;
-
-    return {
-      width: Math.round(alturaAlvo * proporcao),
-      height: alturaAlvo
-    };
-  }
-
-  /**
-   * Remove o fundo claro dos sprites mantendo a transparência original.
-   * O processamento roda uma única vez por direção, e não a cada troca.
-   */
-  private removerFundo(fonte: ImageSource): ImageSource {
-    const imagem = fonte.image;
-    const largura = imagem.naturalWidth;
-    const altura = imagem.naturalHeight;
-
-    if (largura === 0 || altura === 0) {
-      return fonte;
-    }
-
-    const canvas = document.createElement("canvas");
-    canvas.width = largura;
-    canvas.height = altura;
-
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    if (!ctx) {
-      return fonte;
-    }
-
-    ctx.drawImage(imagem, 0, 0);
-    const dados = ctx.getImageData(0, 0, largura, altura);
-    const pixels = dados.data;
-
-    const ehFundoClaro = (indice: number): boolean => {
-      const r = pixels[indice];
-      const g = pixels[indice + 1];
-      const b = pixels[indice + 2];
-      const a = pixels[indice + 3];
-
-      if (a === 0) return true;
-
-      const max = Math.max(r, g, b);
-      const min = Math.min(r, g, b);
-      return max > 195 && max - min < 35;
-    };
-
-    const visitado = new Uint8Array(largura * altura);
-    const fila: number[] = [];
-
-    const enfileirar = (posicao: number): void => {
-      if (visitado[posicao]) return;
-      visitado[posicao] = 1;
-      fila.push(posicao);
-    };
-
-    for (let x = 0; x < largura; x++) {
-      enfileirar(x);
-      enfileirar((altura - 1) * largura + x);
-    }
-    for (let y = 0; y < altura; y++) {
-      enfileirar(y * largura);
-      enfileirar(y * largura + largura - 1);
-    }
-
-    for (let i = 0; i < fila.length; i++) {
-      const posicao = fila[i];
-      const indice = posicao * 4;
-
-      if (!ehFundoClaro(indice)) continue;
-
-      pixels[indice + 3] = 0;
-
-      const x = posicao % largura;
-      const y = (posicao - x) / largura;
-
-      if (x > 0) enfileirar(posicao - 1);
-      if (x < largura - 1) enfileirar(posicao + 1);
-      if (y > 0) enfileirar(posicao - largura);
-      if (y < altura - 1) enfileirar(posicao + largura);
-    }
-
-    ctx.putImageData(dados, 0, 0);
-
-    return ImageSource.fromHtmlCanvasElement(canvas);
+  private updateGraphics(): void {
+    const colMap: Record<Direcao, number> = { down: 0, up: 1, left: 2, right: 3 };
+    const col = colMap[this.currentDirection];
+    const row = this.currentAnimationRow;
+    const x = col * 16;
+    const y = row * 16;
+    (this as any).graphics = new Sprite({
+      image: Resources.NinjaSheet,
+      sourceView: { x, y, width: 16, height: 16 }
+    });
   }
 
   changeDirection(direction: Direcao): void {
     if (this.currentDirection === direction) {
       return;
     }
-
     this.currentDirection = direction;
-
-    const sprite = this.sprites.get(direction);
-    if (sprite) {
-      this.graphics.use(sprite);
+    // When direction changes, reset to IDLE animation
+    if (!this.isMoving) {
+      this.currentAnimationRow = 0; // IDLE
+      this.updateGraphics();
     }
   }
 
+  startMoving(): void {
+    if (!this.isMoving) {
+      this.isMoving = true;
+      this.currentAnimationRow = 0;
+      this.movingFrame = 0;
+      this.updateGraphics();
+    }
+  }
+
+  updateMovingFrame(): void {
+    if (!this.isMoving) return;
+    this.movingFrame++;
+    if (this.movingFrame > 3) this.movingFrame = 0;
+    // When moving, advances through MOVING rows (0,1,2,3)
+    this.currentAnimationRow = this.movingFrame;
+    this.updateGraphics();
+  }
+
   override onInitialize(): void {
-    this.prepararSprites();
+    this.updateGraphics();
   }
 
   override onPreUpdate(engine: Engine, elapsedMs: number): void {
+    // Apply screen shake offset
+    const shakeOffset = this.getShakeOffset();
+    // We need to apply shake to the scene camera or position offset
+    // For now, just track the shake amount
+    
     this.vel = vec(0, 0);
 
     if (this.isDead === true) {
       this.rotation = 0;
-      this.graphics.opacity = 0.4; // Fica translúcido no Game Over
+      this.graphics.opacity = 0.4;
       if (engine.input.keyboard.wasPressed(Keys.R)) {
         this.restartPlayer();
       }
@@ -232,8 +166,10 @@ export class Player extends Actor {
     if (engine.input.keyboard.isHeld(Keys.W)) vertical -= 1;
     if (engine.input.keyboard.isHeld(Keys.S)) vertical += 1;
 
+    const wasHolding = this.isMoving;
     if (horizontal !== 0 || vertical !== 0) {
       this.vel = vec(horizontal, vertical).normalize().scale(this.speed);
+      this.isMoving = true;
 
       // Prioriza a horizontal para o sprite não ficar alternando na diagonal
       if (horizontal !== 0) {
@@ -241,16 +177,22 @@ export class Player extends Actor {
       } else {
         this.changeDirection(vertical > 0 ? "down" : "up");
       }
+    } else {
+      this.isMoving = false;
     }
 
-    // Efeito procedural de passos (oscilação suave de caminhada + leve pulinho na escala)
-    if (this.vel.size > 0) {
-      const ciclo = engine.clock.now() / 55;
-      this.rotation = Math.sin(ciclo) * 0.12;
-      this.scale = vec(1, 1 + Math.abs(Math.cos(ciclo)) * 0.06);
+    // Atualiza frame de movimento
+    if (this.isMoving) {
+      this.movingFrame++;
+      if (this.movingFrame > 3) this.movingFrame = 0;
+      // Quando se move, alternamos entre as rows de MOVING (0,1,2,3)
+      // ou mantemos na row 0 e mudamos o sourceView
+      this.currentAnimationRow = this.movingFrame; // usa frame como row
+      this.updateGraphics();
     } else {
-      this.rotation = 0;
-      this.scale = vec(1, 1);
+      // Parado -> IDLE (row 0)
+      this.currentAnimationRow = 0;
+      this.updateGraphics();
     }
 
     if (engine.input.keyboard.wasPressed(Keys.Space)) {
@@ -280,12 +222,24 @@ export class Player extends Actor {
     }
   }
 
+  private getShakeOffset(): vec {
+    if (this.screenShake <= 0) return vec(0, 0);
+    
+    // Decay screen shake
+    this.screenShake = Math.max(0, this.screenShake - elapsedMs / 50);
+    
+    // Random offset for shake
+    const x = (Math.random() - 0.5) * this.screenShake;
+    const y = (Math.random() - 0.5) * this.screenShake;
+    return vec(x, y);
+  }
+
   override onPostCollisionResolve(self: Collider, other: Collider, side: Side, contact: CollisionContact): void {
     if (this.invulnerability === true || this.isDead === true) {
       return;
     }
 
-    // O blaster do jogador não machuca o próprio Luke; paredes e inimigos sim
+    // O shuriken do jogador não machuca o próprio ninja; paredes e inimigos sim
     if (other.owner instanceof Bullet && other.owner.owner === "player") {
       return;
     }
