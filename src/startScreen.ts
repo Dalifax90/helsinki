@@ -60,7 +60,7 @@ export class StartScreen extends Scene {
 
         // Caixa de instruções e controles
         const controles = new Label({
-            text: "[W, A, S, D] Mover Luke pelos setores\n[ESPACO] Disparar Blaster\n\nCuidado: As paredes imperiais sao eletrificadas!\nAvance pelas portas para somar pontos.",
+            text: "[W, A, S, D] Mover Luke pelos setores\n[ESPACO] Disparar Blaster\n\nElimine os soldados imperiais (+100 pontos).\nCuidado: paredes eletrificadas causam dano!\nAvance pelas portas para somar +50 pontos.",
             pos: vec(400, 340),
             font: new Font({
                 family: "monospace",
