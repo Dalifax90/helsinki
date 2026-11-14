@@ -123,14 +123,6 @@ O build fica em `dist/`. O workflow existente publica no GitHub Pages quando há
 - O pacote oficial foi baixado para integrar shurikens, bolas de fogo, fumaça, árvores, elementos do templo e efeitos sonoros. Apenas os recursos usados pelo projeto precisam acompanhar a publicação; o ZIP de trabalho fica em `.cache/`, ignorado pelo Git.
 - O projeto começou com o template `excaliburjs/template-ts-vite`. Sua licença BSD 2-Clause foi preservada em `LICENSE`.
 
-## Codex no Zed com sua conta ChatGPT
-
-O adaptador oficial `codex-acp` já está instalado no Zed deste computador, e a conexão local foi verificada criando uma sessão sem enviar um pedido ao modelo. O Codex local reconhece o login **ChatGPT**.
-
-No painel de agentes do Zed, abra uma nova conversa e escolha **Codex**. Se for solicitado login, escolha **ChatGPT**, usando a conta da sua assinatura Plus. Não é necessário adicionar uma chave de API para usar essa modalidade. Os limites de uso da assinatura continuam valendo.
-
-Referências: https://zed.dev/docs/ai/external-agents e https://zed.dev/docs/ai/use-an-existing-subscription
-
 ## Interface
 
 A interface usa fundo off-white, tinta quase preta e um único acento vermelho. Títulos em Fraunces, corpo em Public Sans, ambos hospedados localmente em `public/assets/fonts/`, com suas licenças OFL. A navegação, o painel do jogo, os controles em tabela e os créditos mantêm linhas e bordas retas, sem gradientes.
